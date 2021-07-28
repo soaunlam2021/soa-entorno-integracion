@@ -17,7 +17,7 @@ OD	  = arm-none-eabi-objdump
 # Declare command line flags
 CORE_CFLAGS = -I./ -I$(CORE_SRC) -I$(DEVICE_SRC) -I$(STD_PERIPH)/inc -Icommon -fno-common -O0 -g -mcpu=cortex-m3 -mthumb 
 CFLAGS  = $(CORE_CFLAGS) -c 
-CFLAGS_LINK = -Wl,-Tmain.ld -nostartfiles $(CORE_CFLAGS)
+CFLAGS_LINK = -Wno-implicit -Wl,-Tmain.ld -nostartfiles $(CORE_CFLAGS) 
 ASFLAGS = -mcpu=cortex-m3 -mthumb -g
 LDFLAGS = -Tmain.ld -nostartfiles
 CPFLAGS = -Obinary
