@@ -7,7 +7,7 @@ int led_state=0;
 void SysTick_Handler(void)
 {
     //GPIOC->ODR ^= 0x00001000;
-	if(led_state==0)
+	/*if(led_state==0)
 	{
 		GPIO_WriteBit(GPIOA,GPIO_Pin_1,Bit_SET);
 		led_state=1;
@@ -16,7 +16,7 @@ void SysTick_Handler(void)
 		GPIO_WriteBit(GPIOA,GPIO_Pin_1,Bit_RESET);
 		led_state=0;
 
-	}
+	}*/
 
 }
 
@@ -38,7 +38,7 @@ int main(void)
      * interrupt every 1/8th of a second.
      */
     hclk_ticks_per_sec = SystemCoreClock;
-    ext_clock_ticks_per_sec = hclk_ticks_per_sec / 8;
+    ext_clock_ticks_per_sec = hclk_ticks_per_sec / 1000;
     if (SysTick_Config(ext_clock_ticks_per_sec))
     {
         /* If SysTick_Config returns 1, that means the number ticks exceeds the
@@ -50,7 +50,7 @@ int main(void)
      * source.
      */
     last_button_state = GPIOA->IDR & 0x00000001;
-    while(1) {
+    /*while(1) {
         new_button_state = GPIOA->IDR & 0x00000001;
         if(new_button_state ^ last_button_state) {
             if(new_button_state) {
@@ -58,5 +58,14 @@ int main(void)
             }
         }
         last_button_state = new_button_state;
-    }
+    }*/
+    while(1) {
+        	//GPIO_WriteBit(GPIOA,GPIO_Pin_5,Bit_SET);
+        	GPIO_WriteBit(GPIOA,GPIO_Pin_1,Bit_SET);
+        	//GPIOC->BRR = 0x00001000;
+           //busyLoop(500);
+           GPIO_WriteBit(GPIOA,GPIO_Pin_1,Bit_RESET);
+           //GPIOC->BSRR = 0x00001000;
+          // busyLoop(500);
+        }
 }

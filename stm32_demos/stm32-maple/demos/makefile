@@ -15,7 +15,8 @@ CP	  = arm-none-eabi-objcopy
 OD	  = arm-none-eabi-objdump
 
 # Declare command line flags
-CORE_CFLAGS = -I./ -I$(CORE_SRC) -I$(DEVICE_SRC) -I$(STD_PERIPH)/inc -Icommon -fno-common -O0 -g -mcpu=cortex-m3 -mthumb 
+CORE_CFLAGS = -I./ -I$(CORE_SRC) -I$(DEVICE_SRC) -I$(STD_PERIPH)/inc -Icommon -fno-common -O0 -g -mcpu=cortex-m3 -mthumb
+CFLAS_PROFILING=-specs=nano.specs -specs=rdimon.specs -specs=nosys.specs 
 CFLAGS  = $(CORE_CFLAGS) -c 
 CFLAGS_LINK = -Wno-implicit -Wl,-Tmain.ld -nostartfiles $(CORE_CFLAGS) 
 ASFLAGS = -mcpu=cortex-m3 -mthumb -g
@@ -46,6 +47,8 @@ COMMON_FILES += $(STD_PERIPH_SRC)/stm32f10x_tim.c
 COMMON_FILES += $(STD_PERIPH_SRC)/stm32f10x_rtc.c
 COMMON_FILES += $(STD_PERIPH_SRC)/stm32f10x_dac.c
 COMMON_FILES += $(STD_PERIPH_SRC)/misc.c
+
+PROFILING += common/profiling.c
 
 # List all demos
 DEMOS =  adc_single
@@ -168,7 +171,8 @@ blink_flash/main.elf: blink_flash/main.c
 blink_flash/main.elf: $(STD_PERIPH_SRC)/stm32f10x_rcc.c
 blink_flash/main.elf: $(STD_PERIPH_SRC)/stm32f10x_gpio.c
 blink_flash/main.elf: $(COMMON_FILES)
-	$(CC) $(CFLAGS_LINK) -Iblink_flash/ -o $@ $^
+blink_flash/main.elf: $(PROFILING)
+	$(CC) $(CFLAGS_LINK) $(CFLAS_PROFILING) -Iblink_flash/ -o $@ $^
 
 
 blink_flash_asm/main.elf: blink_flash_asm/main.o
@@ -185,7 +189,8 @@ adc_single/main.elf: $(COMMON_FILES)
 
 button/main.elf: button/main.c
 button/main.elf: $(COMMON_FILES)
-	$(CC) $(CFLAGS_LINK) -Ibutton/ -o $@ $^
+button/main.elf: $(PROFILING)
+	$(CC) $(CFLAGS_LINK) $(CFLAS_PROFILING) -Ibutton/ -o $@ $^
 
 
 button_int/main.elf: button_int/main.c
@@ -210,7 +215,8 @@ freertos_singlethread/main.elf: freertos_singlethread/main.c
 freertos_singlethread/main.elf: $(COMMON_FILES)
 freertos_singlethread/main.elf: $(FREE_RTOS_SRC_FILES)
 freertos_singlethread/main.elf: $(FREE_RTOS_SRC)/portable/MemMang/heap_1.c
-	$(CC) $(CFLAGS_LINK) -Ifreertos_singlethread/ -I$(FREE_RTOS_INC) -I$(FREE_RTOS_PORT_INC) -o $@ $^
+freertos_singlethread/main.elf: $(PROFILING)
+	$(CC) $(CFLAGS_LINK) $(CFLAS_PROFILING) -Ifreertos_singlethread/ -I$(FREE_RTOS_INC) -I$(FREE_RTOS_PORT_INC) -o $@ $^
 
 
 freertos_multithread/main.elf: freertos_multithread/main.c

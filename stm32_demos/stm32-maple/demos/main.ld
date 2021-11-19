@@ -14,6 +14,7 @@ SECTIONS
  		*(.text)
  		*(.text.*)
 		*(.rodata)
+		*(.rodata.*)
 		_sidata = .;
 	} >FLASH
 
@@ -31,5 +32,12 @@ SECTIONS
 		_ebss = .;
 	} >RAM
     
-    _estack = ORIGIN(RAM) + LENGTH(RAM);
+    /*_estack = ORIGIN(RAM) + LENGTH(RAM);*/
+    
+    . = ALIGN(4);
+      /* End of user data. Heap starts from here */
+      end = . ;
+  
+      /* Stack starts at end of ram */
+      _estack = ORIGIN(RAM) + LENGTH(RAM) - 4;
  }  
