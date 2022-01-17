@@ -7,7 +7,70 @@
 #include "queue.h"
 #include "semphr.h"
 #include <string.h>
+#include <stdlib.h>
 
+#define SIZE_BUFFER 256
+
+static uint32_t RTOS_RunTimeCounter; /* runtime counter, used for configGENERATE_RUNTIME_STATS */
+static char InfoBuffer[SIZE_BUFFER] = {0};
+
+// Note that we need to multiply the period by 2 in order to work properly.
+// Not sure why...
+
+
+void TIM2_IRQHandler(void)
+{
+    /* Note that I think we could have used TIM_GetFlagStatus
+       and TIM_ClearFlag instead of TIM_GetITStatus and TIM_ClearITPendingBit.
+       These routines seem to overlap quite a bit in functionality. */
+
+    /* Make sure the line has a pending interrupt
+     * which should always be true.
+     *  */
+    if(TIM_GetITStatus(TIM2, USART_IT_TXE) != RESET) {
+        TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
+        RTOS_RunTimeCounter++; /* increment runtime counter */
+    }
+}
+
+
+
+/* Timer functions */
+void ConfigureTimerForRunTimeStates(void) {
+
+	RTOS_RunTimeCounter=0;
+    /* Configure peripheral clock. */
+    /* Let's leave PCLK1 at it's default setting of 36 MHz. */
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
+
+    /* Time base configuration */
+    TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
+    TIM_TimeBaseStructure.TIM_Period = configTICK_RATE_HZ * 10 - 1;
+    TIM_TimeBaseStructure.TIM_Prescaler = SystemCoreClock / 1000000 - 1;
+    TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+    TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+    TIM_TimeBaseInit(TIM2, &TIM_TimeBaseStructure);
+
+    // Enable the update interrupt
+    TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
+
+    /* Enable the timer IRQ in the NVIC module (so that the TIM2 interrupt
+     * handler is enabled). */
+    NVIC_InitTypeDef NVIC_InitStructure;
+    NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
+
+    // Enable the timer
+    TIM_Cmd(TIM2, ENABLE);
+}
+
+uint32_t GetRuntimeCounterValueFromISR(void) {
+  return RTOS_RunTimeCounter;
+}
+
+//********************************************************
 static void setup_hardware( void );
 
 volatile xQueueHandle serial_str_queue = NULL;
@@ -17,7 +80,7 @@ volatile xQueueHandle serial_rx_queue = NULL;
 /* Queue structure used for passing messages. */
 typedef struct
 {
-    char str[100];
+    char str[SIZE_BUFFER];
 } serial_str_msg;
 
 /* Queue structure used for passing characters. */
@@ -145,12 +208,12 @@ void queue_str_task(const char *str, int delay)
 
 void queue_str_task1( void *pvParameters )
 {
-    queue_str_task("Hello 1\n", 200);
+    queue_str_task("Hello 1\r\n", 1000);
 }
 
 void queue_str_task2( void *pvParameters )
 {
-    queue_str_task("Hello 2\n", 50);
+    queue_str_task("Hello 2\r\n", 1000);
 }
 
 void serial_readwrite_task( void *pvParameters )
@@ -162,6 +225,7 @@ void serial_readwrite_task( void *pvParameters )
 
     /* Prepare the response message to be queued. */
     strcpy(msg.str, "Got:");
+
 
     while(1) {
         curr_char = 4;
@@ -178,7 +242,13 @@ void serial_readwrite_task( void *pvParameters )
                 msg.str[curr_char+1] = '\0';
                 done = -1;
             /* Otherwise, add the character to the response string. */
-            } else {
+            } else if (ch=='P'){
+            	memset(InfoBuffer,0,SIZE_BUFFER);
+            	vTaskGetRunTimeStats((char *) &InfoBuffer);
+            	strcpy(msg.str, InfoBuffer);
+            	done = -1;
+            }
+            else{
                 msg.str[curr_char++] = ch;
             }
         } while(!done);
@@ -192,6 +262,8 @@ void serial_readwrite_task( void *pvParameters )
 
 int main(void)
 {
+	TaskHandle_t xHandle;
+
     init_led();
 
     init_button();
@@ -207,17 +279,17 @@ int main(void)
     serial_rx_queue = xQueueCreate( 1, sizeof( serial_ch_msg ) );
 
     /* Create a task to flash the LED. */
-    xTaskCreate( led_flash_task, ( signed portCHAR * ) "LED Flash", 512 /* stack size */, NULL, tskIDLE_PRIORITY + 5, NULL );
+    xTaskCreate( led_flash_task, ( signed portCHAR * ) "LED Flash", 512 /* stack size */, NULL, tskIDLE_PRIORITY + 5, &xHandle );
 
     /* Create tasks to queue a string to be written to the RS232 port. */
-    xTaskCreate( queue_str_task1, ( signed portCHAR * ) "Serial Write 1", 512 /* stack size */, NULL, tskIDLE_PRIORITY + 10, NULL );
-    xTaskCreate( queue_str_task2, ( signed portCHAR * ) "Serial Write 2", 512 /* stack size */, NULL, tskIDLE_PRIORITY + 10, NULL );
+    xTaskCreate( queue_str_task1, ( signed portCHAR * ) "Serial Write 1", 512 /* stack size */, NULL, tskIDLE_PRIORITY + 10, &xHandle  );
+    xTaskCreate( queue_str_task2, ( signed portCHAR * ) "Serial Write 2", 512 /* stack size */, NULL, tskIDLE_PRIORITY + 10, &xHandle  );
 
     /* Create a task to write messages from the queue to the RS232 port. */
-    xTaskCreate(rs232_xmit_msg_task, ( signed portCHAR * ) "Serial Xmit Str", 512 /* stack size */, NULL, tskIDLE_PRIORITY + 2, NULL );
+    xTaskCreate(rs232_xmit_msg_task, ( signed portCHAR * ) "Serial Xmit Str", 512 /* stack size */, NULL, tskIDLE_PRIORITY + 2, &xHandle  );
 
     /* Create a task to receive characters from the RS232 port and echo them back to the RS232 port. */
-    xTaskCreate(serial_readwrite_task, ( signed portCHAR * ) "Serial Read/Write", 512 /* stack size */, NULL, tskIDLE_PRIORITY + 10, NULL );
+    xTaskCreate(serial_readwrite_task, ( signed portCHAR * ) "Serial Read/Write", 512 /* stack size */, NULL, tskIDLE_PRIORITY + 10, &xHandle );
 
     /* Start running the tasks. */
     vTaskStartScheduler();

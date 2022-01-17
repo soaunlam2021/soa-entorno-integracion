@@ -20,7 +20,7 @@ CORE_CFLAGS = -I./ -I$(CORE_SRC) -I$(DEVICE_SRC) -I$(STD_PERIPH)/inc -Icommon -f
 CFLAGS_LINK = -Wno-implicit -Wl,-Tmain.ld -nostartfiles  $(CORE_CFLAGS)
 CFLAGS_ASM =  -O0 -g -mcpu=cortex-m3 -mthumb  -Wno-implicit -Wl, -x assembler-with-cpp 
 
-CFLAS_PROFILING=-specs=nano.specs -specs=rdimon.specs -specs=nosys.specs -pg   
+CFLAS_PROFILING=-specs=nano.specs -specs=rdimon.specs -specs=nosys.specs   
 #CFLAS_PROFILING= -c $(FILE_S)
 ASFLAGS = -mcpu=cortex-m3 -mthumb -g
 LDFLAGS = -Tmain.ld -nostartfiles
@@ -301,8 +301,8 @@ freertos_singlethread/main.elf: $(FREE_RTOS_SRC)/portable/MemMang/heap_1.c
 freertos_multithread/main.elf: freertos_multithread/main.c
 freertos_multithread/main.elf: $(COMMON_FILES)
 freertos_multithread/main.elf: $(FREE_RTOS_SRC_FILES)
-freertos_multithread/main.elf: $(FREE_RTOS_SRC)/portable/MemMang/heap_1.c
-	$(CC) $(CFLAGS_LINK) -Ifreertos_multithread/ -I$(FREE_RTOS_INC) -I$(FREE_RTOS_PORT_INC) -o $@ $^
+freertos_multithread/main.elf: $(FREE_RTOS_SRC)/portable/MemMang/heap_4.c
+	$(CC) $(CFLAGS_LINK) $(CFLAS_PROFILING) -Ifreertos_multithread/ -I$(FREE_RTOS_INC) -I$(FREE_RTOS_PORT_INC) -o $@ $^
 
 freertos_streambuffer/main.elf: freertos_streambuffer/main.c
 freertos_streambuffer/main.elf: $(COMMON_FILES)

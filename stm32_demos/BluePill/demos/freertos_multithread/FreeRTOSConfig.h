@@ -81,7 +81,6 @@
 #define configMINIMAL_STACK_SIZE	( ( unsigned short ) 128 )
 #define configTOTAL_HEAP_SIZE		( ( size_t ) ( 17 * 1024 ) )
 #define configMAX_TASK_NAME_LEN		( 16 )
-#define configUSE_TRACE_FACILITY	0
 #define configUSE_16_BIT_TICKS		0
 #define configIDLE_SHOULD_YIELD		1
 #define configUSE_MUTEXES			1
@@ -112,6 +111,21 @@ priority values, 0 to 15.  This must correspond to the
 configKERNEL_INTERRUPT_PRIORITY setting.  Here 15 corresponds to the lowest
 NVIC value of 255. */
 #define configLIBRARY_KERNEL_INTERRUPT_PRIORITY	15
+
+/*Macro for Run Time Stats*/
+
+#define configUSE_TRACE_FACILITY                 1
+#define configGENERATE_RUN_TIME_STATS            1
+#define configUSE_STATS_FORMATTING_FUNCTIONS     1
+#define configSUPPORT_DYNAMIC_ALLOCATION         1
+
+
+extern void ConfigureTimerForRunTimeStates(void);
+extern uint32_t GetRuntimeCounterValueFromISR(void);
+
+#define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS()   ConfigureTimerForRunTimeStates()
+#define portGET_RUN_TIME_COUNTER_VALUE()           GetRuntimeCounterValueFromISR()
+
 
 #endif /* FREERTOS_CONFIG_H */
 
